@@ -1,9 +1,12 @@
-- name: restart mongodb
+- name: restart {{ mongodb.service }}
   sudo: true
-  action: service name=mongodb state=restarted
-  notify: wait for mongodb
+  service: >
+    name={{ mongodb.service }}
+    state=restarted
+  notify: wait for {{ mongodb.service }}
 
-- name: wait for mongodb
+- name: wait for {{ mongodb.service }}
   wait_for: >
-    port={{ mongodb.config.port | default(27017) }}
+    port={{ mongodb.config.port }}
     delay=1
+    timeout=60

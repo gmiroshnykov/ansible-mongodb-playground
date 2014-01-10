@@ -1,11 +1,14 @@
 mongodb:
-  username: null
-  password: null
-  database: null
+  service: mongodb
+  user: mongodb
+  group: mongodb
 
   # local path to a keyfile that will be copied over to the server
   # and added to mongodb.conf
-  keyFile: null
+  keyfile: null
+
+  configPath: /etc/mongodb.conf
+  keyfilePath: /etc/mongodb.keyfile
 
   config:
     port: 27017

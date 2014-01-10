@@ -19,18 +19,50 @@
 - name: upload keyfile
   sudo: true
   copy: >
-    src={{ mongodb.keyFile }}
-    dest=/etc/mongodb.keyfile
+    src={{ mongodb.keyfile }}
+    dest={{ mongodb.keyfilePath }}
     owner=mongodb
     group=mongodb
     mode=0600
-  when: mongodb.keyFile
-  notify: restart mongodb
+  when: mongodb.keyfile
+  notify: restart {{ mongodb.service }}
 
 - name: generate config
   sudo: true
   template: >
     src=mongodb.conf.j2
-    dest=/etc/mongodb.conf
+    dest={{ mongodb.configPath }}
+    owner=root
+    group=root
     mode=0644
-  notify: restart mongodb
+  notify: restart {{ mongodb.service }}
+
+- name: generate upstart script
+  sudo: true
+  template: >
+    src=upstart.conf.j2
+    dest=/etc/init/{{ mongodb.service }}.conf
+    owner=root
+    group=root
+    mode=0644
+  notify: restart {{ mongodb.service }}
+
+- name: create database directory
+  sudo: true
+  file: >
+    path={{ mongodb.config.dbpath }}
+    state=directory
+    recurse=true
+    owner={{ mongodb.user }}
+    group={{ mongodb.group }}
+    mode=0755
+
+- name: create logs directory
+  sudo: true
+  file: >
+    path={{ mongodb.config.logpath | dirname }}
+    state=directory
+    recurse=true
+    owner={{ mongodb.user }}
+    group={{ mongodb.group }}
+    mode=0755

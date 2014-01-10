@@ -1,0 +1,7 @@
+start on runlevel [2345]
+stop on runlevel [06]
+
+setuid {{ mongodb.user }}
+setgid {{ mongodb.group }}
+
+exec /usr/bin/mongod --config {{ mongodb.configPath }}

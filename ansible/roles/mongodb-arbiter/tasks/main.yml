@@ -1,0 +1,21 @@
+- name: fail if mongodb.config.replSet is not set
+  fail: msg="mongodb.config.replSet is not set"
+  when: mongodb.config.replSet is not defined
+
+- name: flush handlers
+  meta: flush_handlers
+
+- name: pre-check
+  command: >
+    /usr/bin/mongo --quiet --eval 'printjson((rs.isMaster().arbiters || []).indexOf("{{ inventory_hostname }}:{{ mongodb.config.port }}") === -1)'
+  register: pre_result
+  changed_when: false
+  delegate_to: "{{ groups['mongodb-primary'][0] }}"
+
+- name: add arbiter to replica set
+  command: >
+    /usr/bin/mongo --quiet --eval 'printjson(rs.addArb("{{ inventory_hostname }}:{{ mongodb.config.port }}").ok === 1)'
+  register: rs_result
+  delegate_to: "{{ groups['mongodb-primary'][0] }}"
+  failed_when: rs_result.stdout != 'true'
+  when: pre_result.stdout == 'true'

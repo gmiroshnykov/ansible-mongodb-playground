@@ -1,0 +1,16 @@
+# gather facts from mongodb-primary
+- hosts: mongodb-primary
+  tasks: []
+
+- hosts: mongodb-arbiter
+  vars:
+    mongodb:
+      service: mongodb-arbiter
+      configPath: /etc/mongodb-arbiter.conf
+      config:
+        port: 30000
+        dbpath: /var/lib/mongodb-arbiter
+        logpath: /var/log/mongodb/arbiter.log
+  roles:
+    - mongodb
+    - mongodb-arbiter
