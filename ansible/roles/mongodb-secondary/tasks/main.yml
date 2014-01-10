@@ -5,20 +5,16 @@
 - name: flush handlers
   meta: flush_handlers
 
-- name: set mongodb port fact
-  set_fact: mongodb_port={{ mongodb.config.port | default(27017) }}
-
 - name: pre-check
   command: >
-    /usr/bin/mongo --quiet --eval 'printjson(rs.isMaster().hosts.indexOf("{{ inventory_hostname }}:{{ mongodb_port }}") !== 0)'
+    /usr/bin/mongo --quiet --eval 'printjson(rs.isMaster().hosts.indexOf("{{ inventory_hostname }}:{{ mongodb.config.port }}") === -1)'
   register: pre_result
   changed_when: false
-  delegate_to: master.mongodb.dev
+  delegate_to: "{{ groups['mongodb-primary'][0] }}"
 
 - name: add secondary to replica set
-  # FIXME: race condition?
   command: >
-    /usr/bin/mongo --quiet --eval 'var result = rs.add("{{ inventory_hostname }}:{{ mongodb_port }}"); printjson(result.ok)'
+    /usr/bin/mongo --quiet --eval 'printjson(rs.add("{{ inventory_hostname }}:{{ mongodb.config.port }}").ok)'
   register: rs_result
+  delegate_to: "{{ groups['mongodb-primary'][0] }}"
   when: pre_result.stdout == 'true'
-  delegate_to: master.mongodb.dev
