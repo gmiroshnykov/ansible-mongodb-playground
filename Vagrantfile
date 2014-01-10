@@ -15,22 +15,17 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     master.vm.hostname = "master.mongodb.dev"
     master.vm.network :private_network, ip: "10.0.40.2"
     master.vm.synced_folder ".", "/opt/rebbix-analytics", :nfs => true
-
-    master.vm.provision :ansible do |ansible|
-      ansible.playbook = "ansible/all.yml"
-      ansible.inventory_path = "ansible/vagrant"
-      ansible.limit = master.vm.hostname
-    end
   end
 
   config.vm.define "slave" do |slave|
     slave.vm.hostname = "slave.mongodb.dev"
     slave.vm.network :private_network, ip: "10.0.40.3"
 
+    # we only add Ansible provisioning to the last VM,
+    # see: https://github.com/mitchellh/vagrant/issues/1784#issuecomment-21041577
     slave.vm.provision :ansible do |ansible|
       ansible.playbook = "ansible/all.yml"
       ansible.inventory_path = "ansible/vagrant"
-      ansible.limit = slave.vm.hostname
     end
   end
 
