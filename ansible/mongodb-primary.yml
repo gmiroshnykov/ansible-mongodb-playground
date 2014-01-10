@@ -1,6 +1,4 @@
 - hosts: mongodb-primary
-  gather_facts: false
   roles:
-    - common
     - mongodb
     - mongodb-primary

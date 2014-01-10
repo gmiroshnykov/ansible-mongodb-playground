@@ -1,9 +1,13 @@
+- name: set hostname
+  sudo: true
+  hostname: name={{ inventory_hostname }}
+
 - name: apt-get update
-  sudo: yes
+  sudo: true
   apt: update_cache=yes cache_valid_time=3600
 
 - name: install packages
-  sudo: yes
+  sudo: true
   apt: pkg={{ item }}
   with_items:
     - build-essential
@@ -17,7 +21,7 @@
     - python-pip # for ansible
 
 - name: install python packages
-  sudo: yes
+  sudo: true
   pip: name={{ item }}
   with_items:
     - pymongo # for ansible

@@ -1,0 +1,24 @@
+- name: fail if mongodb.config.replSet is not set
+  fail: msg="mongodb.config.replSet is not set"
+  when: mongodb.config.replSet is not defined
+
+- name: flush handlers
+  meta: flush_handlers
+
+- name: set mongodb port fact
+  set_fact: mongodb_port={{ mongodb.config.port | default(27017) }}
+
+- name: pre-check
+  command: >
+    /usr/bin/mongo --quiet --eval 'printjson(rs.isMaster().hosts.indexOf("{{ inventory_hostname }}:{{ mongodb_port }}") !== 0)'
+  register: pre_result
+  changed_when: false
+  delegate_to: master.mongodb.dev
+
+- name: add secondary to replica set
+  # FIXME: race condition?
+  command: >
+    /usr/bin/mongo --quiet --eval 'var result = rs.add("{{ inventory_hostname }}:{{ mongodb_port }}"); printjson(result.ok)'
+  register: rs_result
+  when: pre_result.stdout == 'true'
+  delegate_to: master.mongodb.dev

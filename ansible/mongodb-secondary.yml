@@ -1,0 +1,7 @@
+- hosts: mongodb-primary
+  tasks: []
+
+- hosts: mongodb-secondary
+  roles:
+    - mongodb
+    - mongodb-secondary
