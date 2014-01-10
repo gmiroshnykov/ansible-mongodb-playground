@@ -3,5 +3,5 @@
 {% endfor %}
 
 {% if mongodb.keyfile %}
-keyFile=/etc/mongodb.keyfile
+keyFile={{ mongodb.keyfilePath }}
 {% endif %}

@@ -10,8 +10,13 @@ mongodb:
   configPath: /etc/mongodb.conf
   keyfilePath: /etc/mongodb.keyfile
 
+  admin_username: admin
+  admin_password: admin
+
   config:
+    auth: 'true'
     port: 27017
     dbpath: /var/lib/mongodb
     logpath: /var/log/mongodb/mongodb.log
     logappend: 'true'
+    replSet: default

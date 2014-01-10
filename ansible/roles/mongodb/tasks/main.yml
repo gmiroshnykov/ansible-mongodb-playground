@@ -12,6 +12,15 @@
     update_cache=yes
     state=present
 
+- name: prevent default mongodb autostart
+  sudo: true
+  copy: >
+    content='ENABLE_MONGODB=no'
+    dest=/etc/default/mongodb
+    owner=root
+    group=root
+    mode=0644
+
 - name: install package
   sudo: true
   apt: pkg=mongodb-10gen
