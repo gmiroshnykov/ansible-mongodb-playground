@@ -1,0 +1,17 @@
+[mongodb-primary]
+master.mongodb.dev
+
+[mongodb-secondary]
+slave.mongodb.dev
+
+[mongodb-arbiter]
+master.mongodb.dev
+
+[all:vars]
+ansible_connection = ssh
+ansible_ssh_user = vagrant
+
+[vagrant:children]
+mongodb-primary
+mongodb-secondary
+mongodb-arbiter
