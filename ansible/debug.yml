@@ -1,0 +1,9 @@
+- hosts: all
+  gather_facts: false
+  tasks:
+    - name: debug
+      mongodb: >
+        command='db.system.users.find()'
+        auth_database=admin
+        auth_username=admin
+        auth_password=admin
