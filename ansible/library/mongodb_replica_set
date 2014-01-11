@@ -1,0 +1,180 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# (c) 2014, George Miroshnykov <george.miroshnykov@gmail.com>
+#
+# This file is part of Ansible
+#
+# Ansible is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Ansible is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
+
+DEFAULT_PORT = 27017
+
+pymongo_found = False
+try:
+    from pymongo.errors import ConnectionFailure
+    from pymongo.errors import OperationFailure
+    from pymongo.errors import AutoReconnect
+    from pymongo import MongoClient
+    pymongo_found = True
+except ImportError:
+    try:  # for older PyMongo 2.2
+        from pymongo import Connection as MongoClient
+        pymongo_found = True
+    except ImportError:
+        pass
+
+def normalize_member_host(member):
+    if ':' not in member:
+        member = member + ':' + str(DEFAULT_PORT)
+    return member
+
+def create_member(host, arbiter_only = False):
+    member = dict(host = host)
+
+    if arbiter_only:
+        member['arbiterOnly'] = True
+
+    return member
+
+def authenticate(client, login_username, login_password, login_database = None):
+    # check if we should skip auth
+    skip_auth = True
+    try:
+        client.database_names()
+    except OperationFailure as e:
+        skip_auth = False
+
+    if (not skip_auth and login_username and login_password):
+        client.admin.authenticate(login_username, login_password, source = login_database)
+
+def rs_get_config(client):
+    return client.local.system.replset.find_one()
+
+def rs_initiate(client):
+    client.admin.command('replSetInitiate')
+
+def rs_get_member(rs_config, member):
+    a = filter(lambda x: x['host'] == member, rs_config['members'])
+    return a[0] if a else None
+
+def rs_get_next_member_id(rs_config):
+    if rs_config is None or rs_config['members'] is None:
+        return 0
+
+    def compare_max_id(max_id, current_member):
+        id = int(current_member['_id'])
+        return id if id > max_id else max_id
+
+    max_id = reduce(compare_max_id, rs_config['members'], 0)
+    return max_id + 1
+
+def rs_add_member(rs_config, member):
+    rs_config['members'].append(member)
+    rs_config['version'] = rs_config['version'] + 1
+    return rs_config
+
+def rs_remove_member(rs_config, member):
+    for i, candidate in enumerate(rs_config['members']):
+        if candidate['host'] == member['host']:
+            del rs_config['members'][i]
+            break
+
+    rs_config['version'] = rs_config['version'] + 1
+    return rs_config
+
+def rs_reconfigure(client, rs_config):
+    try:
+        client.admin.command('replSetReconfig', rs_config)
+    except AutoReconnect:
+        pass
+
+
+
+def main():
+    module = AnsibleModule(
+        argument_spec = dict(
+            login_host      = dict(default='localhost'),
+            login_port      = dict(type='int', default=DEFAULT_PORT),
+            login_database  = dict(default='admin'),
+            login_username  = dict(default=None),
+            login_password  = dict(default=None),
+            member          = dict(default=None),
+            arbiter_only    = dict(type='bool', choices=BOOLEANS, default='no'),
+            state           = dict(required=True, choices=['initiated', 'present', 'absent']),
+        )
+    )
+
+    if not pymongo_found:
+        module.fail_json(msg='the python pymongo module is required')
+
+    login_host      = module.params['login_host']
+    login_port      = module.params['login_port']
+    login_database  = module.params['login_database']
+    login_username  = module.params['login_username']
+    login_password  = module.params['login_password']
+    state           = module.params['state']
+
+    member_host     = module.params['member']
+    if member_host:
+        member_host = normalize_member_host(member_host)
+
+    member = create_member(
+        host            = member_host,
+        arbiter_only    = module.params['arbiter_only']
+    )
+
+    result = dict(changed=False)
+
+    # connect
+    client = None
+    try:
+        client = MongoClient(login_host, login_port)
+    except ConnectionFailure as e:
+        module.fail_json(msg='unable to connect to database: %s' % e)
+
+    # authenticate
+    if login_username and login_password:
+        authenticate(client, login_username, login_password, login_database)
+
+    # get replica set config
+    rs_config = rs_get_config(client)
+    member['_id'] = rs_get_next_member_id(rs_config)
+
+    if state == 'initiated':
+        # initiate only if config is empty
+        if rs_config is None:
+            rs_initiate(client)
+            result['changed'] = True
+    elif state == 'present':
+        # check if given host is currently a member of replica set
+        current_member = rs_get_member(rs_config, member['host'])
+        if current_member == None:
+            rs_config = rs_add_member(rs_config, member)
+            rs_reconfigure(client, rs_config)
+            result['changed'] = True
+
+    elif state == 'absent':
+        # check if given host is currently a member of replica set
+        current_member = rs_get_member(rs_config, member['host'])
+        if current_member:
+            rs_config = rs_remove_member(rs_config, member)
+            rs_reconfigure(client, rs_config)
+            result['changed'] = True
+
+    module.exit_json(**result)
+
+
+
+from ansible.module_utils.basic import *
+main()

@@ -5,24 +5,8 @@
 - name: flush handlers
   meta: flush_handlers
 
-- name: check replica set pre-status
-  command: >
-    /usr/bin/mongo --quiet --eval 'printjson(rs.status().startupStatus === 3)'
-  register: pre_result
-  changed_when: false
-
 - name: initiate replica set
-  command: >
-    /usr/bin/mongo --quiet --eval 'rs.initiate()'
-  register: rs_result
-  when: pre_result.stdout == 'true'
-
-- name: check replica set post-status
-  command: >
-    /usr/bin/mongo --quiet --eval 'printjson(rs.status().myState === 1)'
-  register: post_result
-  until: post_result.stdout == 'true'
-  retries: 30
-  delay: 1
-  changed_when: false
-  when: rs_result | changed
+  mongodb_replica_set: >
+    login_username={{ mongodb.admin_username }}
+    login_password={{ mongodb.admin_password }}
+    state=initiated
