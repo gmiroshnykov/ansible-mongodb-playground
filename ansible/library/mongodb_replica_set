@@ -20,6 +20,8 @@
 
 DEFAULT_PORT = 27017
 
+import time
+
 pymongo_found = False
 try:
     from pymongo.errors import ConnectionFailure
@@ -99,7 +101,17 @@ def rs_reconfigure(client, rs_config):
     except AutoReconnect:
         pass
 
+def rs_wait_for_ok_and_primary(client, timeout = 60):
+    while True:
+        status = client.admin.command('replSetGetStatus', check=False)
+        if status['ok'] == 1 and status['myState'] == 1:
+            return
 
+        timeout = timeout - 1
+        if timeout == 0:
+            raise Exception('reached timeout while waiting for rs.status() to become ok=1')
+
+        time.sleep(1)
 
 def main():
     module = AnsibleModule(
@@ -155,6 +167,7 @@ def main():
         # initiate only if config is empty
         if rs_config is None:
             rs_initiate(client)
+            rs_wait_for_ok_and_primary(client)
             result['changed'] = True
     elif state == 'present':
         # check if given host is currently a member of replica set
