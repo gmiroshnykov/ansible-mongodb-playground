@@ -10,3 +10,10 @@
     login_username={{ mongodb.admin_username }}
     login_password={{ mongodb.admin_password }}
     state=initiated
+
+- name: create mongodb admin
+  mongodb_user: >
+    database=admin
+    user={{ mongodb.admin_username }}
+    password={{ mongodb.admin_password }}
+    roles=dbAdminAnyDatabase,userAdminAnyDatabase,readWriteAnyDatabase,clusterAdmin
