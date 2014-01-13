@@ -7,7 +7,7 @@
 
 - name: initiate replica set
   mongodb_replica_set: >
-    login_username={{ mongodb.admin_username }}
+    login_user={{ mongodb.admin_username }}
     login_password={{ mongodb.admin_password }}
     state=initiated
 

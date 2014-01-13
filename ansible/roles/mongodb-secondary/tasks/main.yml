@@ -7,7 +7,7 @@
 
 - name: add secondary to replica set
   mongodb_replica_set: >
-    login_username={{ mongodb.admin_username }}
+    login_user={{ mongodb.admin_username }}
     login_password={{ mongodb.admin_password }}
     state=present
     member={{ inventory_hostname }}:{{ mongodb.config.port }}
