@@ -18,6 +18,70 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
+DOCUMENTATION = '''
+---
+module: mongodb_replica_set
+version_added: "1.5"
+short_description: Initiate, add and remove members from MongoDB replica set
+description:
+   - Initiate, add and remove members from MongoDB replica set
+options:
+    login_user:
+        description:
+            - The username used to authenticate with
+        required: false
+        default: null
+    login_password:
+        description:
+            - The password used to authenticate with
+        required: false
+        default: null
+    login_host:
+        description:
+            - The host running the database
+        required: false
+        default: localhost
+    login_port:
+        description:
+            - The port to connect to
+        required: false
+        default: 6379
+    member:
+        description:
+            - The host[:port] to add/remove from a replica set
+        required: false
+        default: null
+    arbiter_only:
+        description:
+            - Should a new member be added as arbiter
+        required: false
+        default: false
+    state:
+        description:
+            - The desired state of the replica set
+        required: true
+        default: null
+        choices: [ "initiated", "present", "absent" ]
+notes:
+    - See also M(mongodb_user)
+requirements: [ pymongo ]
+author: George Miroshnykov
+'''
+
+EXAMPLES = '''
+# initiate a replica set
+- mongodb_replica_set: state=initiated
+
+# add a replica set member
+- mongodb_replica_set: member=secondary.example.com state=present
+
+# add an arbiter on custom port
+- mongodb_replica_set: member=arbiter.example.com:30000 arbiter_only=yes state=present
+
+# remove a replica set member
+- mongodb_replica_set: member=secondary.example.com state=absent
+'''
+
 DEFAULT_PORT = 27017
 
 import time
@@ -49,7 +113,7 @@ def create_member(host, arbiter_only = False):
 
     return member
 
-def authenticate(client, login_username, login_password, login_database = None):
+def authenticate(client, login_user, login_password):
     # check if we should skip auth
     skip_auth = True
     try:
@@ -57,8 +121,8 @@ def authenticate(client, login_username, login_password, login_database = None):
     except OperationFailure as e:
         skip_auth = False
 
-    if (not skip_auth and login_username and login_password):
-        client.admin.authenticate(login_username, login_password, source = login_database)
+    if (not skip_auth and login_user and login_password):
+        client.admin.authenticate(login_user, login_password)
 
 def rs_get_config(client):
     return client.local.system.replset.find_one()
@@ -118,8 +182,7 @@ def main():
         argument_spec = dict(
             login_host      = dict(default='localhost'),
             login_port      = dict(type='int', default=DEFAULT_PORT),
-            login_database  = dict(default='admin'),
-            login_username  = dict(default=None),
+            login_user      = dict(default=None),
             login_password  = dict(default=None),
             member          = dict(default=None),
             arbiter_only    = dict(type='bool', choices=BOOLEANS, default='no'),
@@ -132,8 +195,7 @@ def main():
 
     login_host      = module.params['login_host']
     login_port      = module.params['login_port']
-    login_database  = module.params['login_database']
-    login_username  = module.params['login_username']
+    login_user      = module.params['login_user']
     login_password  = module.params['login_password']
     state           = module.params['state']
 
@@ -156,8 +218,8 @@ def main():
         module.fail_json(msg='unable to connect to database: %s' % e)
 
     # authenticate
-    if login_username and login_password:
-        authenticate(client, login_username, login_password, login_database)
+    if login_user and login_password:
+        authenticate(client, login_user, login_password)
 
     # get replica set config
     rs_config = rs_get_config(client)
