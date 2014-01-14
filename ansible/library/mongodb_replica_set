@@ -270,7 +270,7 @@ def main():
     elif state == 'present':
         # check if given host is currently a member of replica set
         current_member = rs_get_member(rs_config, member['host'])
-        if current_member == None:
+        if current_member is None:
             rs_config = rs_add_member(rs_config, member)
             rs_reconfigure(client, rs_config)
             result['changed'] = True
