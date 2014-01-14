@@ -80,6 +80,17 @@ EXAMPLES = '''
 
 # remove a replica set member
 - mongodb_replica_set: member=secondary.example.com state=absent
+
+# use all possible parameters when adding a member (please don't do that in production):
+- mongodb_replica_set: >
+    member=secondary.example.com
+    state=present
+    arbiter_only=yes
+    build_indexes=no
+    hidden=yes
+    priority=0
+    slave_delay=3600
+    votes=42
 '''
 
 DEFAULT_PORT = 27017
@@ -100,16 +111,31 @@ except ImportError:
     except ImportError:
         pass
 
-def normalize_member_host(member):
-    if ':' not in member:
-        member = member + ':' + str(DEFAULT_PORT)
-    return member
+def normalize_member_host(member_host):
+    if ':' not in member_host:
+        member_host = member_host + ':' + str(DEFAULT_PORT)
+    return member_host
 
-def create_member(host, arbiter_only = False):
+def create_member(host, **kwargs):
     member = dict(host = host)
 
-    if arbiter_only:
+    if kwargs['arbiter_only']:
         member['arbiterOnly'] = True
+
+    if not kwargs['build_indexes']:
+        member['buildIndexes'] = False
+
+    if kwargs['hidden']:
+        member['hidden'] = True
+
+    if kwargs['priority'] != 1.0:
+        member['priority'] = kwargs['priority']
+
+    if kwargs['slave_delay'] != 0:
+        member['slaveDelay'] = kwargs['slave_delay']
+
+    if kwargs['votes'] != 1:
+        member['votes'] = kwargs['votes']
 
     return member
 
@@ -186,6 +212,11 @@ def main():
             login_password  = dict(default=None),
             member          = dict(default=None),
             arbiter_only    = dict(type='bool', choices=BOOLEANS, default='no'),
+            build_indexes   = dict(type='bool', choices=BOOLEANS, default='yes'),
+            hidden          = dict(type='bool', choices=BOOLEANS, default='no'),
+            priority        = dict(default='1.0'),
+            slave_delay     = dict(type='int', default='0'),
+            votes           = dict(type='int', default='1'),
             state           = dict(required=True, choices=['initiated', 'present', 'absent']),
         )
     )
@@ -197,15 +228,20 @@ def main():
     login_port      = module.params['login_port']
     login_user      = module.params['login_user']
     login_password  = module.params['login_password']
+    member_host     = module.params['member']
     state           = module.params['state']
 
-    member_host     = module.params['member']
     if member_host:
         member_host = normalize_member_host(member_host)
 
     member = create_member(
         host            = member_host,
-        arbiter_only    = module.params['arbiter_only']
+        arbiter_only    = module.params['arbiter_only'],
+        build_indexes   = module.params['build_indexes'],
+        hidden          = module.params['hidden'],
+        priority        = float(module.params['priority']),
+        slave_delay     = module.params['slave_delay'],
+        votes           = module.params['votes']
     )
 
     result = dict(changed=False)
