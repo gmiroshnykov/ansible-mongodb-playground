@@ -61,7 +61,6 @@
   file: >
     path={{ mongodb.config.dbpath }}
     state=directory
-    recurse=true
     owner={{ mongodb.user }}
     group={{ mongodb.group }}
     mode=0755
@@ -71,7 +70,6 @@
   file: >
     path={{ mongodb.config.logpath | dirname }}
     state=directory
-    recurse=true
     owner={{ mongodb.user }}
     group={{ mongodb.group }}
     mode=0755

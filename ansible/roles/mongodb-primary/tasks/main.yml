@@ -17,3 +17,9 @@
     user={{ mongodb.admin_username }}
     password={{ mongodb.admin_password }}
     roles=dbAdminAnyDatabase,userAdminAnyDatabase,readWriteAnyDatabase,clusterAdmin
+
+- name: generate ~/.mongorc.js
+  template: >
+    src=mongorc.js.j2
+    dest=~/.mongorc.js
+    mode=0644
