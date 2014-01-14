@@ -24,7 +24,8 @@ module: mongodb_replica_set
 version_added: "1.5"
 short_description: Initiate, add and remove members from MongoDB replica set
 description:
-   - Initiate, add and remove members from MongoDB replica set
+   - 'Initiate, add and remove members from MongoDB replica set.
+     See: http://docs.mongodb.org/manual/reference/replica-configuration/'
 options:
     login_user:
         description:
@@ -48,14 +49,61 @@ options:
         default: 6379
     member:
         description:
-            - The host[:port] to add/remove from a replica set
+            - The host[:port] to add/remove from a replica set.
         required: false
         default: null
     arbiter_only:
         description:
-            - Should a new member be added as arbiter
+            - Should a new member be added as arbiter.
         required: false
         default: false
+    build_indexes:
+        description:
+            - Determines whether the mongod builds indexes on this member.
+              Do not set to false for instances that receive queries from clients.
+        required: false
+        default: true
+    hidden:
+        description:
+            - When this value is true, the replica set hides this instance,
+              and does not include the member in the output of db.isMaster()
+              or isMaster.
+              This prevents read operations (i.e. queries) from ever reaching
+              this host by way of secondary read preference.
+        required: false
+        default: false
+    priority:
+        description:
+            - Specify higher values to make a member more eligible to become
+              primary, and lower values to make the member less eligible to
+              become primary.
+              Priorities are only used in comparison to each other.
+              Members of the set will veto election requests from members
+              when another eligible member has a higher priority value.
+              Changing the balance of priority in a replica set will trigger
+              an election.
+        required: false
+        default: 1.0
+    slave_delay:
+        description:
+            - Describes the number of seconds "behind" the primary that this
+              replica set member should "lag."
+              Use this option to create delayed members, that maintain a copy
+              of the data that reflects the state of the data set at some
+              amount of time in the past, specified in seconds.
+              Typically such delayed members help protect against human error,
+              and provide some measure of insurance against the unforeseen
+              consequences of changes and updates.
+        required: false
+        default: 0
+    votes:
+        description:
+            - Controls the number of votes a server will cast in a
+              replica set election.
+              The number of votes each member has can be any non-negative integer,
+              but it is highly recommended each member has 1 or 0 votes.
+        required: false
+        default: 1
     state:
         description:
             - The desired state of the replica set
@@ -65,7 +113,7 @@ options:
 notes:
     - See also M(mongodb_user)
 requirements: [ pymongo ]
-author: George Miroshnykov
+author: George Miroshnykov <george.miroshnykov@gmail.com>
 '''
 
 EXAMPLES = '''
