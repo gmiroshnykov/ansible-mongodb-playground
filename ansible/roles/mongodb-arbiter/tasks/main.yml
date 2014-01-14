@@ -5,26 +5,11 @@
 - name: flush handlers
   meta: flush_handlers
 
-- name: find primary
-  command: >
-    /usr/bin/mongo --quiet --eval 'print(rs.isMaster().primary)'
-  register: find_primary_result
-  changed_when: false
-
-- name: save primary's address
-  set_fact:
-    mongodb:
-      primary: '{{ find_primary_result.stdout }}'
-
-- name: pre-check
-  command: >
-    /usr/bin/mongo {{ mongodb.primary }} --quiet --eval 'printjson((rs.isMaster().arbiters || []).indexOf("{{ inventory_hostname }}:{{ mongodb.config.port }}") === -1)'
-  register: pre_result
-  changed_when: false
-
 - name: add arbiter to replica set
-  command: >
-    /usr/bin/mongo {{ mongodb.primary }} --quiet --eval 'printjson(rs.addArb("{{ inventory_hostname }}:{{ mongodb.config.port }}").ok === 1)'
-  register: rs_result
-  failed_when: rs_result.stdout != 'true'
-  when: pre_result.stdout == 'true'
+  mongodb_replica_set: >
+    login_user={{ mongodb.admin_username }}
+    login_password={{ mongodb.admin_password }}
+    state=present
+    member={{ inventory_hostname }}:{{ mongodb.config.port }}
+    arbiter_only=true
+  delegate_to: "{{ groups['mongodb-primary'][0] }}"
