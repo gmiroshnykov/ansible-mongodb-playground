@@ -13,8 +13,8 @@ Requirements
 
 * [Vagrant 1.4+](http://www.vagrantup.com/downloads.html) (tested on 1.4.2)
 * A forked version of Ansible (`pip install https://github.com/laggyluke/ansible/archive/mongodb_improvements.zip`) which contains the following changes:
-    * ansible/ansible#5597
-    * ansible/ansible#5615
+    * https://github.com/ansible/ansible/pull/5597
+    * https://github.com/ansible/ansible/pull/5615
 
 Usage
 -----
